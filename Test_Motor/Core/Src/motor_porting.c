@@ -1,0 +1,95 @@
+#include "tim.h"
+#include "encoder_motor.h"
+#include "motor_porting.h"
+
+// 全局电机对象
+EncoderMotorObjectTypeDef motor1;
+EncoderMotorObjectTypeDef motor2;
+
+// 外部定时器句柄
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim5;
+
+// 电机1 PWM 设置 (TIM1 CH3/CH4)
+void motor1_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
+    if (pulse > 0) {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pulse);
+    } else if (pulse < 0) {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, -pulse);
+    } else {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+    }
+}
+
+// 电机2 PWM 设置 (TIM1 CH1/CH2)
+void motor2_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
+    if (pulse > 0) {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse);
+    } else if (pulse < 0) {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, -pulse);
+    } else {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+    }
+}
+
+// 电机初始化（两个电机）
+void motor_init(void) {
+    // ========== 电机1 初始化 ==========
+    encoder_motor_object_init(&motor1);
+    motor1.ticks_overflow = 60000;                     // TIM5 ARR
+    motor1.ticks_per_circle = MOTOR_JGB520_TICKS_PER_CIRCLE;
+    motor1.rps_limit = MOTOR_JGB520_RPS_LIMIT;
+    motor1.pid_controller.kp = MOTOR_JGB520_PID_KP;
+    motor1.pid_controller.ki = MOTOR_JGB520_PID_KI;
+    motor1.pid_controller.kd = MOTOR_JGB520_PID_KD;
+    motor1.set_pulse = motor1_set_pulse;
+
+    // ========== 电机2 初始化（可单独修改参数） ==========
+    encoder_motor_object_init(&motor2);
+    motor2.ticks_overflow = 60000;                     // TIM2 ARR（也设为16位模式）
+    motor2.ticks_per_circle = MOTOR_JGB520_TICKS_PER_CIRCLE; // 若不同电机请修改
+    motor2.rps_limit = MOTOR_JGB520_RPS_LIMIT;
+    motor2.pid_controller.kp = MOTOR_JGB520_PID_KP;
+    motor2.pid_controller.ki = MOTOR_JGB520_PID_KI;
+    motor2.pid_controller.kd = MOTOR_JGB520_PID_KD;
+    motor2.set_pulse = motor2_set_pulse;
+
+    // 启动 TIM1 所有 PWM 通道
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+
+    // ========== 配置 TIM5 编码器（电机1） ==========
+    HAL_TIM_Encoder_Stop(&htim5, TIM_CHANNEL_ALL);
+    __HAL_TIM_SET_AUTORELOAD(&htim5, motor1.ticks_overflow);
+    __HAL_TIM_SET_COUNTER(&htim5, 0);
+    TIM5->CR1 &= ~TIM_CR1_DIR;
+    TIM5->CR1 |= TIM_CR1_ARPE;
+    TIM5->DIER |= TIM_DIER_UIE;          // 使能更新中断
+    HAL_NVIC_SetPriority(TIM5_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+    HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
+
+    // ========== 配置 TIM2 编码器（电机2） ==========
+    HAL_TIM_Encoder_Stop(&htim2, TIM_CHANNEL_ALL);
+    __HAL_TIM_SET_AUTORELOAD(&htim2, motor2.ticks_overflow);
+    __HAL_TIM_SET_COUNTER(&htim2, 0);
+    TIM2->CR1 &= ~TIM_CR1_DIR;
+    TIM2->CR1 |= TIM_CR1_ARPE;
+    TIM2->DIER |= TIM_DIER_UIE;          // 使能更新中断
+    HAL_NVIC_SetPriority(TIM2_IRQn, 0, 1);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+
+    // TIM6 已经由 CubeMX 初始化并启动，中断回调中处理控制
+    // 注意：需要确保 TIM6 已使能中断并启动
+    HAL_TIM_Base_Start_IT(&htim6);
+}
