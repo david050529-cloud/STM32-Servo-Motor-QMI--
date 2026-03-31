@@ -27,7 +27,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "encoder_motor.h"
+#include "motor_porting.h"
+#include "QMI8658.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +50,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+extern EncoderMotorObjectTypeDef motor1;
+extern EncoderMotorObjectTypeDef motor2;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,7 +104,15 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+  // 初始化电机和舵机
 
+  motor_init();
+
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+  uint32_t ccr_init = 90;
+  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, ccr_init);
+  // encoder_motor_set_speed(&motor1, 2.0); // 设置目标转速
+  // encoder_motor_set_speed(&motor2, -2.0); // 设置目标转速
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -185,14 +196,26 @@ void SystemClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
-
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14)
   {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
+  if (htim->Instance == TIM6)
+  {
+    float dt = 0.01f;  // 10ms 控制周期
 
+    // 1. 读取编码器计数值并更新电机对象
+    uint32_t cnt1 = __HAL_TIM_GET_COUNTER(&htim5);
+    uint32_t cnt2 = __HAL_TIM_GET_COUNTER(&htim2);
+    encoder_update(&motor1, dt, cnt1);
+    encoder_update(&motor2, dt, cnt2);
+
+    // 2. 执行 PID 控制，更新 PWM 输出
+    encoder_motor_control(&motor1, dt);
+    encoder_motor_control(&motor2, dt);
+  }
   /* USER CODE END Callback 1 */
 }
 

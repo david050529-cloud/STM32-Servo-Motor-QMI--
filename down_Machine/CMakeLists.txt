@@ -33,6 +33,7 @@ enable_language(C ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
+        Core/Inc/comm_protocol.h
         Core/Inc/pid.h
         Core/Src/pid.c
         Core/Inc/encoder_motor.h
@@ -42,7 +43,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Inc/QMI8658reg.h
         Core/Inc/QMI8658.h
         Core/Src/QMI8658.c)
-
+target_link_options(${PROJECT_NAME} PRIVATE -u _printf_float)
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 

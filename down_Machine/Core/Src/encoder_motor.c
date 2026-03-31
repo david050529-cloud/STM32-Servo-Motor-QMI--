@@ -1,7 +1,7 @@
 #include "encoder_motor.h"
 #include <stdlib.h>
 
-void encoder_update(EncoderMotorObjectTypeDef *self, float period, int32_t current_counter) {
+void encoder_update(EncoderMotorObjectTypeDef *self, float period, uint32_t current_counter) {
     // 计算总计数（考虑溢出，每次溢出增加 ticks_overflow+1）
     int64_t new_total = (int64_t)self->overflow_num * (self->ticks_overflow + 1) + current_counter;
     int64_t delta = new_total - self->total_counter;
@@ -27,7 +27,7 @@ void encoder_motor_control(EncoderMotorObjectTypeDef *self, float period) {
     if (pulse < -1000) pulse = -1000;
 
     // 死区处理（PWM过小时电机不动）
-    if (pulse > -250 && pulse < 250) pulse = 0;
+
 
     // 输出
     self->set_pulse(self, pulse);

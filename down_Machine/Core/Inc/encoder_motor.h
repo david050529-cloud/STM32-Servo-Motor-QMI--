@@ -36,7 +36,7 @@ struct EncoderMotorObject {
 
 // 公共接口
 void encoder_motor_object_init(EncoderMotorObjectTypeDef *self);
-void encoder_update(EncoderMotorObjectTypeDef *self, float period, int32_t current_counter);
+void encoder_update(EncoderMotorObjectTypeDef *self, float period, uint32_t current_counter);
 void encoder_motor_control(EncoderMotorObjectTypeDef *self, float period);
 void encoder_motor_set_speed(EncoderMotorObjectTypeDef *self, float rps);
 

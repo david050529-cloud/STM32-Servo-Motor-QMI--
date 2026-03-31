@@ -139,7 +139,7 @@ float QMI8658_ReadTemperature(void) {
 }
 
 // 互补滤波姿态解算（需要周期性调用，dt为采样间隔秒）
-void QMI8658_GetEuler(float dt, float *roll, float *pitch, float *yaw) {
+void QMI8658_GetEuler(float dt, volatile float *roll, volatile float *pitch, volatile float *yaw) {
     float acc[3], gyro[3];
     QMI8658_ReadRaw(acc, gyro);
 

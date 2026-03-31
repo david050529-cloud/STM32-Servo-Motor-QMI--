@@ -24,7 +24,7 @@ float QMI8658_ReadTemperature(void);
 
 // 获取欧拉角（需要周期性调用，内部使用互补滤波）
 // 建议以固定周期（如10ms）调用，dt为两次调用间隔（秒）
-void QMI8658_GetEuler(float dt, float *roll, float *pitch, float *yaw);
+void QMI8658_GetEuler(float dt, volatile float *roll, volatile float *pitch, volatile float *yaw);
 
 // 简便版：直接获取欧拉角（内部使用上次调用时间差，需在循环中周期调用）
 void QMI8658_GetEulerSimple(float *roll, float *pitch, float *yaw);
