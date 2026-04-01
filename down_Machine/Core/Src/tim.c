@@ -258,7 +258,7 @@ void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 4199;
+  htim6.Init.Prescaler = 8399;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 99;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -352,7 +352,7 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef* tim_encoderHandle)
     HAL_GPIO_Init(Coder2_CH2_GPIO_Port, &GPIO_InitStruct);
 
     /* TIM2 interrupt Init */
-    HAL_NVIC_SetPriority(TIM2_IRQn, 6, 0);
+    HAL_NVIC_SetPriority(TIM2_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
   /* USER CODE BEGIN TIM2_MspInit 1 */
 
@@ -379,7 +379,7 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef* tim_encoderHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* TIM5 interrupt Init */
-    HAL_NVIC_SetPriority(TIM5_IRQn, 6, 0);
+    HAL_NVIC_SetPriority(TIM5_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(TIM5_IRQn);
   /* USER CODE BEGIN TIM5_MspInit 1 */
 
@@ -399,7 +399,7 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* tim_pwmHandle)
     __HAL_RCC_TIM3_CLK_ENABLE();
 
     /* TIM3 interrupt Init */
-    HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
+    HAL_NVIC_SetPriority(TIM3_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* USER CODE BEGIN TIM3_MspInit 1 */
 

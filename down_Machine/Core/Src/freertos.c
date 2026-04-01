@@ -1,20 +1,4 @@
 /* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * File Name          : freertos.c
-  * Description        : Code for freertos applications
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -25,90 +9,89 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
+#include <string.h>
 #include "comm_protocol.h"
+#include "usart.h"
+#include "encoder_motor.h"
 #include "motor_porting.h"
 #include "QMI8658.h"
-#include <string.h>
 #include "queue.h"
+#include "semphr.h"
 #include "tim.h"
-#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+// static TelemetryPacket cmd;
+// static CommandPacket txPacket;
 
-// 外部引用电机和IMU数据
-extern volatile float imu_roll, imu_pitch, imu_yaw;
-extern EncoderMotorObjectTypeDef motor1, motor2;
+float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
+float act_rps_1 = 0.0f, act_rps_2 = 0.0f;
 
-// 串口接收缓冲区
-// static uint8_t rx_buffer[sizeof(CommandPacket) + 4]; // 帧头2字节 + 数据 + 校验1字节
-// static uint8_t rx_index = 0;
-// static uint8_t rx_state = 0;  // 0=等待帧头1, 1=等待帧头2, 2=接收数据, 3=等待校验
+float target_rps_1 = 0.0f, target_rps_2 = 0.0f;
+uint16_t servo_angle = 0;
 
-// 发送缓冲区
-static uint8_t tx_buffer[sizeof(TelemetryPacket) + 4];
-
-// 队列句柄，用于接收串口数据
-QueueHandle_t xUartRxQueue;
-// 接收字节缓冲（用于中断）
-uint8_t uart_rx_byte;
-
+/* 任务间通信对象 */
+static QueueHandle_t telemetryQueue = NULL;      // 存放遥测数据的队列
+static SemaphoreHandle_t uartTxCompleteSem = NULL; // DMA发送完成信号量
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for UART_Task1 */
-osThreadId_t UART_Task1Handle;
-const osThreadAttr_t UART_Task1_attributes = {
-  .name = "UART_Task1",
-  .stack_size = 1024 * 4,
+/* Definitions for myTask01 */
+osThreadId_t myTask01Handle;
+const osThreadAttr_t myTask01_attributes = {
+  .name = "myTask01",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+/* Definitions for myTask02 */
+osThreadId_t myTask02Handle;
+const osThreadAttr_t myTask02_attributes = {
+  .name = "myTask02",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityNormal2,
+};
+/* Definitions for myTask03 */
+osThreadId_t myTask03Handle;
+const osThreadAttr_t myTask03_attributes = {
+  .name = "myTask03",
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal1,
 };
-/* Definitions for UART_Task2 */
-osThreadId_t UART_Task2Handle;
-const osThreadAttr_t UART_Task2_attributes = {
-  .name = "UART_Task2",
-  .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for IMU_Task */
-osThreadId_t IMU_TaskHandle;
-const osThreadAttr_t IMU_Task_attributes = {
-  .name = "IMU_Task",
+/* Definitions for myTask04 */
+osThreadId_t myTask04Handle;
+const osThreadAttr_t myTask04_attributes = {
+  .name = "myTask04",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal4,
 };
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
-void Send_Task(void *argument);
-void Receive_Task(void *argument);
-void IMU_Task(void *argument);
+void Send_and_Receive(void *argument);
+void Read_IMU(void *argument);
+void Control(void *argument);
+void UART_Tx_Task(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -119,66 +102,66 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
+
+  //初始化姿态传感器
   if (QMI8658_Init()) {
-    printf("QMI8658 init success\r\n");
   } else {
-    printf("QMI8658 init failed\r\n");
     Error_Handler();
   }
 
+  //初始化舵机
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+  uint16_t angle_init = 90;
+  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, angle_init);
+
+  motor_init();                      // 初始化电机
+
+  /* 创建队列和信号量 */
+  telemetryQueue = xQueueCreate(5, sizeof(TelemetryPacket)); // 最多缓存5个遥测包
+  uartTxCompleteSem = xSemaphoreCreateBinary();
+  if (telemetryQueue == NULL || uartTxCompleteSem == NULL) {
+    Error_Handler();
+  }
+  
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  // 创建队列，存储 uint8_t，队列长度64
-  xUartRxQueue = xQueueCreate(64, sizeof(uint8_t));
-  if (xUartRxQueue == NULL) {
-    // 创建失败处理
-    Error_Handler();
-  }
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of UART_Task1 */
-  UART_Task1Handle = osThreadNew(Send_Task, NULL, &UART_Task1_attributes);
+  /* creation of myTask01 */
+  myTask01Handle = osThreadNew(Send_and_Receive, NULL, &myTask01_attributes);
 
-  /* creation of UART_Task2 */
-  UART_Task2Handle = osThreadNew(Receive_Task, NULL, &UART_Task2_attributes);
+  /* creation of myTask02 */
+  myTask02Handle = osThreadNew(Read_IMU, NULL, &myTask02_attributes);
 
-  /* creation of IMU_Task */
-  IMU_TaskHandle = osThreadNew(IMU_Task, NULL, &IMU_Task_attributes);
+  /* creation of myTask03 */
+  myTask03Handle = osThreadNew(Control, NULL, &myTask03_attributes);
+
+  /* creation of myTask04 */
+  myTask04Handle = osThreadNew(UART_Tx_Task, NULL, &myTask04_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
 
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
@@ -191,162 +174,129 @@ void StartDefaultTask(void *argument)
   /* USER CODE END StartDefaultTask */
 }
 
-/* USER CODE BEGIN Header_Send_Task */
-/**
-* @brief Function implementing the UART_Task1 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_Send_Task */
-void Send_Task(void *argument)
+/* USER CODE BEGIN Header_Send_and_Receive */
+/* USER CODE END Header_Send_and_Receive */
+void Send_and_Receive(void *argument)
 {
-  /* USER CODE BEGIN Send_Task */
-  TelemetryPacket tele;
-  uint8_t checksum;
-  const TickType_t period = pdMS_TO_TICKS(50); // 50ms发送一次
+  /* USER CODE BEGIN Send_and_Receive */
+  uint8_t rx_buffer[sizeof(CommandPacket)];
+  CommandPacket cmd;
+  TelemetryPacket txPacket;
   /* Infinite loop */
   for(;;)
   {
-    // 获取当前状态（注意加临界区保护，因为数据在中断中更新）
-    taskENTER_CRITICAL();
-    tele.roll = imu_roll;
-    tele.pitch = imu_pitch;
-    tele.yaw = imu_yaw;
-    tele.motor1_actual_rps = motor1.rps;
-    tele.motor2_actual_rps = motor2.rps;
-    taskEXIT_CRITICAL();
+    // 接收命令（阻塞10ms）
+    if (HAL_UART_Receive(&huart3, rx_buffer, sizeof(CommandPacket), 10) == HAL_OK) {
+      memcpy(&cmd, rx_buffer, sizeof(CommandPacket));
+      target_rps_1 = cmd.motor1_target_rps;
+      target_rps_2 = cmd.motor2_target_rps;
+      servo_angle = cmd.servo_angle;
+    }
 
-    // 添加帧头0xAA 0x55
-    tx_buffer[0] = 0xAA;
-    tx_buffer[1] = 0x55;
-    memcpy(tx_buffer + 2, &tele, sizeof(TelemetryPacket));
+    // 构造遥测数据
+    txPacket.roll = roll;
+    txPacket.pitch = pitch;
+    txPacket.yaw = yaw;
+    txPacket.motor1_actual_rps = motor1.rps;
+    txPacket.motor2_actual_rps = motor2.rps;
 
-    // 计算校验和（异或）
-    checksum = 0;
-    for (int i = 0; i < sizeof(TelemetryPacket); i++)
-      checksum ^= tx_buffer[2 + i];
-    tx_buffer[2 + sizeof(TelemetryPacket)] = checksum;
-    // 发送数据（阻塞方式，注意避免任务阻塞过久）
-    HAL_UART_Transmit(&huart3, tx_buffer, sizeof(TelemetryPacket) + 3, period);
-    vTaskDelay(period);
+    // 将遥测数据放入队列（非阻塞，如果队列满则丢弃旧数据）
+    xQueueSend(telemetryQueue, &txPacket, 0);
+
+    osDelay(1);  // 适当延时
   }
-  /* USER CODE END Send_Task */
+  /* USER CODE END Send_and_Receive */
 }
 
-/* USER CODE BEGIN Header_Receive_Task */
-/**
-* @brief Function implementing the UART_Task2 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_Receive_Task */
-void Receive_Task(void *argument)
+/* USER CODE BEGIN Header_Read_IMU */
+/* USER CODE END Header_Read_IMU */
+void Read_IMU(void *argument)
 {
-  CommandPacket cmd;
-  uint8_t c;
-  uint8_t checksum;
-  static uint8_t rx_buffer[sizeof(CommandPacket)]; // 数据缓冲区
-  static uint8_t rx_index = 0;
-  static uint8_t rx_state = 0;
-
-  // 启动第一次中断接收
-  HAL_UART_Receive_IT(&huart3, &uart_rx_byte, 1);
-
+  /* USER CODE BEGIN Read_IMU */
+  /* Infinite loop */
   for(;;)
   {
-    // 阻塞等待队列中有字节
-    if (xQueueReceive(xUartRxQueue, &c, portMAX_DELAY) != pdTRUE) continue;
-
-    // 状态机解析（与之前相同）
-    switch(rx_state)
-    {
-      case 0: // 等待帧头0xAA
-        if (c == 0xAA) rx_state = 1;
-        break;
-      case 1:
-        if (c == 0x55) rx_state = 2;
-        else {
-          rx_state = 0;
-          rx_index = 0;
-        }
-        break;
-      case 2: // 接收数据
-        if (rx_index < sizeof(CommandPacket))
-        {
-          rx_buffer[rx_index++] = c;
-        }
-        if (rx_index >= sizeof(CommandPacket))
-        {
-          rx_state = 3;
-        }
-        break;
-      case 3: // 接收校验和
-      {
-        checksum = 0;
-        for (int i = 0; i < sizeof(CommandPacket); i++)
-          checksum ^= rx_buffer[i];
-        if (checksum == c)
-        {
-          memcpy(&cmd, rx_buffer, sizeof(CommandPacket));
-          encoder_motor_set_speed(&motor1, cmd.motor1_target_rps);
-          encoder_motor_set_speed(&motor2, -cmd.motor2_target_rps);
-          servo_set_angle(cmd.servo_angle);
-        }
-        // 重置状态机
-        rx_state = 0;
-        rx_index = 0;
-      }
-        break;
-      default:
-        rx_state = 0;
-        rx_index = 0;
-        break;
-    }
+    QMI8658_GetEulerSimple(&roll, &pitch, &yaw);
+    osDelay(10);
   }
-  /* USER CODE END Receive_Task */
+  /* USER CODE END Read_IMU */
 }
 
-/* USER CODE BEGIN Header_IMU_Task */
+/* USER CODE BEGIN Header_Control */
 /**
-* @brief Function implementing the IMU_Task thread.
+* @brief Function implementing the myTask03 thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_IMU_Task */
-void IMU_Task(void *argument)
+/* USER CODE END Header_Control */
+void Control(void *argument)
 {
-  const TickType_t period = pdMS_TO_TICKS(10); // 10ms周期
-  for (;;)
+  /* USER CODE BEGIN Control */
+  /* Infinite loop */
+  for(;;)
   {
-    float dt = 0.01f;  // 固定周期10ms
-    float roll, pitch, yaw;
-    // 读取IMU数据（非阻塞I2C，但HAL_I2C_Mem_Read内部使用无限等待，不影响其他任务）
-    QMI8658_GetEuler(dt, &roll, &pitch, &yaw);
-    // 更新全局变量，加临界区保护
-    taskENTER_CRITICAL();
-    imu_roll = roll;
-    imu_pitch = pitch;
-    imu_yaw = yaw;
-    taskEXIT_CRITICAL();
-    vTaskDelay(period);
+    encoder_motor_set_speed(&motor1, target_rps_1);
+    encoder_motor_set_speed(&motor2, -target_rps_2);
+
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angle);
+
+    osDelay(1);
   }
+  /* USER CODE END Control */
 }
 
+/* USER CODE BEGIN Header_UART_Tx_Task */
+/**
+* @brief Function implementing the myTask04 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_UART_Tx_Task */
+void UART_Tx_Task(void *argument)
+{
+  /* USER CODE BEGIN UART_Tx_Task */
+  TelemetryPacket txPacket;
+  uint8_t tx_buffer[sizeof(TelemetryPacket)];
+  BaseType_t xResult;
+  /* Infinite loop */
+  for(;;)
+  {
+    // 等待队列中的遥测数据（阻塞等待）
+    xResult = xQueueReceive(telemetryQueue, &txPacket, portMAX_DELAY);
+    if (xResult == pdPASS)
+    {
+      // 将数据复制到静态缓冲区（确保DMA期间不被修改）
+      memcpy(tx_buffer, &txPacket, sizeof(TelemetryPacket));
+
+      // 启动DMA发送
+      if (HAL_UART_Transmit_DMA(&huart3, tx_buffer, sizeof(TelemetryPacket)) != HAL_OK)
+      {
+        // 发送失败处理，可重试或丢弃
+        continue;
+      }
+
+      // 等待发送完成信号量（超时时间可配置）
+      if (xSemaphoreTake(uartTxCompleteSem, pdMS_TO_TICKS(100)) != pdTRUE)
+      {
+        // 超时，可能DMA卡死，可尝试中止发送
+        HAL_UART_AbortTransmit(&huart3);
+      }
+    }
+    osDelay(1);
+  }
+  /* USER CODE END UART_Tx_Task */
+}
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART3)
   {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    // 将接收到的字节放入队列
-    xQueueSendFromISR(xUartRxQueue, &uart_rx_byte, &xHigherPriorityTaskWoken);
-    // 重新启动下一次接收
-    HAL_UART_Receive_IT(&huart3, &uart_rx_byte, 1);
+    xSemaphoreGiveFromISR(uartTxCompleteSem, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   }
 }
-
 /* USER CODE END Application */
 

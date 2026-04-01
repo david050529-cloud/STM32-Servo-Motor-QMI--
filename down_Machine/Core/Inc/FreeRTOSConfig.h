@@ -56,7 +56,7 @@
 #define CMSIS_device_header "stm32f4xx.h"
 #endif /* CMSIS_device_header */
 
-#define configENABLE_FPU                         0
+#define configENABLE_FPU                         1
 #define configENABLE_MPU                         0
 
 #define configUSE_PREEMPTION                     1
@@ -92,7 +92,7 @@
 #define configTIMER_TASK_PRIORITY                ( 2 )
 #define configTIMER_QUEUE_LENGTH                 10
 #define configTIMER_TASK_STACK_DEPTH             256
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY  6
+
 /* CMSIS-RTOS V2 flags */
 #define configUSE_OS2_THREAD_SUSPEND_RESUME  1
 #define configUSE_OS2_THREAD_ENUMERATE       1
@@ -139,7 +139,7 @@ function. */
 routine that makes calls to interrupt safe FreeRTOS API functions.  DO NOT CALL
 INTERRUPT SAFE FREERTOS API FUNCTIONS FROM ANY INTERRUPT THAT HAS A HIGHER
 PRIORITY THAN THIS! (higher priorities are lower numeric values. */
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 6
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 
 /* Interrupt priorities used by the kernel port layer itself.  These are generic
 to all Cortex-M ports, and do not rely on any particular library functions. */

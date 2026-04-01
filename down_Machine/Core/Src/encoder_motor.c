@@ -2,19 +2,19 @@
 #include <stdlib.h>
 
 void encoder_update(EncoderMotorObjectTypeDef *self, float period, uint32_t current_counter) {
-    // 计算总计数（考虑溢出，每次溢出增加 ticks_overflow+1）
-    int64_t new_total = (int64_t)self->overflow_num * (self->ticks_overflow + 1) + current_counter;
+    int64_t new_total;
+    // 32位定时器（ARR=0xFFFFFFFF）直接使用当前计数值，忽略溢出（短时运行足够）
+    if (self->ticks_overflow == 0xFFFFFFFF) {
+        new_total = current_counter;
+    } else {
+        new_total = (int64_t)self->overflow_num * (self->ticks_overflow + 1) + current_counter;
+    }
     int64_t delta = new_total - self->total_counter;
     self->total_counter = new_total;
-
-    // 一阶低通滤波计算脉冲频率
     float tps_raw = (float)delta / period;
     self->tps = 0.9f * self->tps + 0.1f * tps_raw;
-
-    // 计算转速（转/秒）
     self->rps = self->tps / self->ticks_per_circle;
 }
-
 void encoder_motor_control(EncoderMotorObjectTypeDef *self, float period) {
     // PID更新
     pid_controller_update(&self->pid_controller, self->rps, period);

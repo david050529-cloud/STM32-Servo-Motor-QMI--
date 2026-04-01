@@ -13,20 +13,13 @@ void pid_controller_init(PID_ControllerTypeDef *self, float kp, float ki, float 
 
 void pid_controller_update(PID_ControllerTypeDef *self, float actual, float dt) {
     float error = self->set_point - actual;
-
-    // 积分累加并限幅
     self->integral += error * dt;
     if (self->integral > self->integral_limit)
         self->integral = self->integral_limit;
     else if (self->integral < -self->integral_limit)
         self->integral = -self->integral_limit;
-
-    // 微分（实际值微分，避免目标值突变）
-    float derivative = (self->prev_error - error) / dt; // 注意符号：常用 (error - prev_error)/dt，这里使用负反馈
-
-    // 位置式PID输出
+    // 修正微分项符号
+    float derivative = (error - self->prev_error) / dt;
     self->output = self->kp * error + self->ki * self->integral + self->kd * derivative;
-
-    // 保存误差
     self->prev_error = error;
 }

@@ -105,12 +105,12 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   // 初始化电机和舵机
-
-  motor_init();
-
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-  uint32_t ccr_init = 90;
-  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, ccr_init);
+  //
+  // motor_init();
+  //
+  // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+  // uint32_t ccr_init = 90;
+  // __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, ccr_init);
   // encoder_motor_set_speed(&motor1, 2.0); // 设置目标转速
   // encoder_motor_set_speed(&motor2, -2.0); // 设置目标转速
   /* USER CODE END 2 */
