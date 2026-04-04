@@ -21,7 +21,7 @@ void motor_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
     if (pulse < -1000) pulse = -1000;
 
     // 死区处理（PWM过小时电机不动）
-    if (pulse > -250 && pulse < 250) pulse = 0;
+    if (pulse > -50 && pulse < 50) pulse = 0;
 
     // 调用硬件回调
     self->set_pulse(self, pulse);

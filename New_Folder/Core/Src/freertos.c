@@ -30,7 +30,7 @@
 #include "QMI8658.h"
 #include "usart.h"
 #include <string.h>
-
+#include "pid.h"
 #include "queue.h"
 #include "tim.h"
 /* USER CODE END Includes */
@@ -219,14 +219,23 @@ void MotorCtrlTask(void *argument)
   {
     if (xQueueReceive(xMotorCmdQueue, &MotorCmd, portMAX_DELAY) == pdTRUE)
     {
-      // 将目标转速转换为PWM输出（简单比例控制，实际可能需要PID）
-      // 这里直接使用目标转速作为PWM值（-1000~1000范围），用户可根据需要调整映射关系
-      int pulse1 = (int)(MotorCmd.motor1_target_rps * 500.0f); // 假设1rps对应500PWM
-      int pulse2 = (int)(MotorCmd.motor2_target_rps * 500.0f);
-      motor_set_pulse(&motor1, pulse1);
-      motor_set_pulse(&motor2, -pulse2);  // 电机2方向取反
+      // 设置 PID 目标值
+      PID_SetTarget(&pid_motor1, MotorCmd.motor1_target_rps);
+      PID_SetTarget(&pid_motor2, MotorCmd.motor2_target_rps);
+
+      // 获取实际转速（已在 TIM6 中断中更新 motor.rps）
+      float rps1 = motor1.rps;
+      float rps2 = motor2.rps;
+
+      // 计算 PID 输出（增量式，内部自动累加）
+      float pulse1 = PID_Update_Position(&pid_motor1, rps1);
+      float pulse2 = PID_Update_Position(&pid_motor2, rps2);
+
+      // 电机 2 方向取反（根据原有逻辑）
+      motor_set_pulse(&motor1, (int)pulse1);
+      motor_set_pulse(&motor2, -(int)pulse2);
     }
-    osDelay(1);
+    osDelay(1);  // 控制周期可适当调整，例如 10ms
   }
   /* USER CODE END MotorCtrlTask */
 }

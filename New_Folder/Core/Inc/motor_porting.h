@@ -2,6 +2,10 @@
 #define __MOTOR_PORTING_H__
 
 #include "encoder_motor.h"
+#include "pid.h"
+
+extern PID_HandleTypeDef pid_motor1;
+extern PID_HandleTypeDef pid_motor2;
 
 extern EncoderMotorObjectTypeDef motor1;
 extern EncoderMotorObjectTypeDef motor2;

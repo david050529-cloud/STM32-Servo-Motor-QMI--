@@ -24,6 +24,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "motor_porting.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -185,16 +186,28 @@ void SystemClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
-
+  static uint32_t last_tick_motor = 0;
+  uint32_t now = HAL_GetTick();
+  float period = (now - last_tick_motor) / 1000.0f;
+  if (period <= 0.0f || period > 0.1f) period = 0.01f;
+  last_tick_motor = now;
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14)
   {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  if (htim->Instance == TIM6)
+  {
+    // 读取编码器当前计数值（HAL 库提供宏或直接读寄存器）
+    int32_t cnt1 = __HAL_TIM_GET_COUNTER(&htim5);
+    int32_t cnt2 = __HAL_TIM_GET_COUNTER(&htim2);
+    encoder_update(&motor1, period, cnt1);
+    encoder_update(&motor2, period, cnt2);
+  }
   /* USER CODE END Callback 1 */
 }
+
 
 /**
   * @brief  This function is executed in case of error occurrence.

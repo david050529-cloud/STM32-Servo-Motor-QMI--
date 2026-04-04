@@ -41,6 +41,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/Inc/QMI8658.h
         Core/Inc/QMI8658reg.h
         Core/Src/QMI8658.c
+        Core/Src/pid.c
+        Core/Inc/pid.h
 )
 
 # Add STM32CubeMX generated sources

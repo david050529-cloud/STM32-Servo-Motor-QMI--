@@ -1,11 +1,14 @@
 #include "tim.h"
 #include "encoder_motor.h"
 #include "motor_porting.h"
+#include "pid.h"
 
 // 全局电机对象
 EncoderMotorObjectTypeDef motor1;
 EncoderMotorObjectTypeDef motor2;
 
+PID_HandleTypeDef pid_motor1;
+PID_HandleTypeDef pid_motor2;
 // 外部定时器句柄
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
@@ -80,5 +83,19 @@ void motor_init(void) {
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
     // 可选：启动TIM6用于周期性读取编码器（如果需要监控转速）
-    // HAL_TIM_Base_Start_IT(&htim6);
+    HAL_TIM_Base_Start_IT(&htim6);
+
+    // 初始化 PID 参数（示例，需根据实际调参）
+    //对应PID_Update
+    // PID_Init(&pid_motor1, 8.0f, 0.05f, 0.05f, 1000.0f, -1000.0f, 500.0f);
+    // PID_Init(&pid_motor2, 8.0f, 0.05f, 0.05f, 1000.0f, -1000.0f, 500.0f);
+
+    //对应PID_Update_Position
+    PID_Init(&pid_motor1, 15.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 200.0f);
+    PID_Init(&pid_motor2, 15.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 200.0f);
+}
+
+void start_encoder_periodic_update(void)
+{
+    HAL_TIM_Base_Start_IT(&htim6);
 }
