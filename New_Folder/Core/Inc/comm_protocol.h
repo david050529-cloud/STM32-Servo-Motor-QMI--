@@ -11,11 +11,13 @@ typedef struct __attribute__((packed)) {
 } CommandPacket;
 
 typedef struct __attribute__((packed)) {
+    uint8_t  header[2];          // 帧头: 0xAA, 0x55
     float roll;
     float pitch;
     float yaw;
     float motor1_actual_rps;
     float motor2_actual_rps;
+    uint8_t  footer[2];          // 帧尾: 0x0D, 0x0A
 } TelemetryPacket;
 
 #endif // __COMM_PROTOCOL_H__

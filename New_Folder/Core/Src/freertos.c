@@ -345,12 +345,20 @@ void DataSendTask(void *argument)
     // 等待固定周期
     vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TELEMETRY_SEND_PERIOD_MS));
 
+    // 填充帧头
+    txPacket.header[0] = 0xAA;
+    txPacket.header[1] = 0x55;
+
     // 填充遥测数据
     txPacket.roll = g_roll;
     txPacket.pitch = g_pitch;
     txPacket.yaw = g_yaw;
     txPacket.motor1_actual_rps = motor1.rps;
     txPacket.motor2_actual_rps = motor2.rps;
+
+    // 填充帧尾
+    txPacket.footer[0] = 0x0D;
+    txPacket.footer[1] = 0x0A;
 
     // 通过串口发送（阻塞方式，由于数据量小且优先级低，影响可控）
     HAL_UART_Transmit(&huart3, (uint8_t*)&txPacket, sizeof(TelemetryPacket), 100);
