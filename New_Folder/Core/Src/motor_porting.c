@@ -31,11 +31,11 @@ void motor1_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
 // 电机2 PWM 设置 (TIM1 CH1/CH2)
 void motor2_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
     if (pulse > 0) {
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse);
-    } else if (pulse < 0) {
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, -pulse);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulse);
+    } else if (pulse < 0) {
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, -pulse);
     } else {
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
@@ -91,8 +91,8 @@ void motor_init(void) {
     // PID_Init(&pid_motor2, 8.0f, 0.05f, 0.05f, 1000.0f, -1000.0f, 500.0f);
 
     //对应PID_Update_Position
-    PID_Init(&pid_motor1, 15.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 200.0f);
-    PID_Init(&pid_motor2, 15.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 200.0f);
+    PID_Init(&pid_motor1, 10.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 500.0f);
+    PID_Init(&pid_motor2, 10.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 500.0f);
 }
 
 void start_encoder_periodic_update(void)

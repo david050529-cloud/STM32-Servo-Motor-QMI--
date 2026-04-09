@@ -17,7 +17,7 @@ typedef struct __attribute__((packed)) {
     float yaw;
     float motor1_actual_rps;
     float motor2_actual_rps;
-    uint8_t  footer[2];          // 帧尾: 0x0D, 0x0A
+    // uint8_t  footer[2];          // 帧尾: 0x0D, 0x0A
 } TelemetryPacket;
 
 #endif // __COMM_PROTOCOL_H__

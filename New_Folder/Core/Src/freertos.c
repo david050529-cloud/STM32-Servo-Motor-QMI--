@@ -233,7 +233,7 @@ void MotorCtrlTask(void *argument)
 
       // 电机 2 方向取反（根据原有逻辑）
       motor_set_pulse(&motor1, (int)pulse1);
-      motor_set_pulse(&motor2, -(int)pulse2);
+      motor_set_pulse(&motor2, (int)pulse2);
     }
     osDelay(1);  // 控制周期可适当调整，例如 10ms
   }
@@ -357,8 +357,8 @@ void DataSendTask(void *argument)
     txPacket.motor2_actual_rps = motor2.rps;
 
     // 填充帧尾
-    txPacket.footer[0] = 0x0D;
-    txPacket.footer[1] = 0x0A;
+    // txPacket.footer[0] = 0x0D;
+    // txPacket.footer[1] = 0x0A;
 
     // 通过串口发送（阻塞方式，由于数据量小且优先级低，影响可控）
     HAL_UART_Transmit(&huart3, (uint8_t*)&txPacket, sizeof(TelemetryPacket), 100);

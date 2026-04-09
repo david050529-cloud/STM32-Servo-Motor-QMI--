@@ -2,30 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="81a9bd4e-68b8-48d2-8eb0-886704742f36" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/../down_Machine/Core/Inc/comm_protocol.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../down_Machine/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Test_IMU/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Test_IMU/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Test_Servo/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Test_Servo/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Inc/QMI8658.h" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Inc/QMI8658.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Inc/motor_porting.h" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Inc/motor_porting.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Src/QMI8658.c" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Src/QMI8658.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Src/freertos.c" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Src/freertos.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Src/main.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Src/motor_porting.c" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Src/motor_porting.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Core/Src/tim.c" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Core/Src/tim.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Drivers/CMSIS/Device/ST/STM32F4xx/LICENSE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Drivers/CMSIS/Device/ST/STM32F4xx/LICENSE.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Drivers/CMSIS/LICENSE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Drivers/CMSIS/LICENSE.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/Drivers/STM32F4xx_HAL_Driver/LICENSE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/Drivers/STM32F4xx_HAL_Driver/LICENSE.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../down_Machine/down_Machine.ioc" beforeDir="false" afterPath="$PROJECT_DIR$/../down_Machine/down_Machine.ioc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../New_Folder/Core/Inc/comm_protocol.h" beforeDir="false" afterPath="$PROJECT_DIR$/../New_Folder/Core/Inc/comm_protocol.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../New_Folder/Core/Src/freertos.c" beforeDir="false" afterPath="$PROJECT_DIR$/../New_Folder/Core/Src/freertos.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../New_Folder/Core/Src/motor_porting.c" beforeDir="false" afterPath="$PROJECT_DIR$/../New_Folder/Core/Src/motor_porting.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../New_Folder/Core/Src/tim.c" beforeDir="false" afterPath="$PROJECT_DIR$/../New_Folder/Core/Src/tim.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
-  </component>
-  <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="1616" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -34,10 +20,10 @@
     <commands />
     <urls />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 2
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="3BgYCvPIeixOa6DPwEMeRPh5GuQ" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -50,13 +36,27 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "new",
+    "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "Settings.Markdown",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="Smart_Car_dwon" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="Smart_Car_dwon" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -73,6 +73,7 @@
       <option name="presentableId" value="Default" />
       <updated>1774912059332</updated>
       <workItem from="1774912063973" duration="24000" />
+      <workItem from="1775561898604" duration="21000" />
     </task>
     <servers />
   </component>
