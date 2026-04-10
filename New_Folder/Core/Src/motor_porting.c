@@ -68,8 +68,7 @@ void motor_init(void) {
     __HAL_TIM_SET_COUNTER(&htim5, 0);
     TIM5->CR1 |= TIM_CR1_ARPE;
     TIM5->DIER |= TIM_DIER_UIE;          // 使能更新中断（用于溢出计数）
-    HAL_NVIC_SetPriority(TIM5_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM5_IRQn);
+    // 中断优先级已在 tim.c 中设置，此处不再覆盖
     HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
     // ========== 配置 TIM2 编码器（电机2） ==========
@@ -78,19 +77,13 @@ void motor_init(void) {
     __HAL_TIM_SET_COUNTER(&htim2, 0);
     TIM2->CR1 |= TIM_CR1_ARPE;
     TIM2->DIER |= TIM_DIER_UIE;          // 使能更新中断
-    HAL_NVIC_SetPriority(TIM2_IRQn, 0, 1);
-    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    // 中断优先级已在 tim.c 中设置，此处不再覆盖
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
-    // 可选：启动TIM6用于周期性读取编码器（如果需要监控转速）
+    // 启动TIM6用于周期性读取编码器
     HAL_TIM_Base_Start_IT(&htim6);
 
     // 初始化 PID 参数（示例，需根据实际调参）
-    //对应PID_Update
-    // PID_Init(&pid_motor1, 8.0f, 0.05f, 0.05f, 1000.0f, -1000.0f, 500.0f);
-    // PID_Init(&pid_motor2, 8.0f, 0.05f, 0.05f, 1000.0f, -1000.0f, 500.0f);
-
-    //对应PID_Update_Position
     PID_Init(&pid_motor1, 10.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 500.0f);
     PID_Init(&pid_motor2, 10.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 500.0f);
 }

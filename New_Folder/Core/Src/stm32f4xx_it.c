@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_it.h"
+
+#include "encoder_motor.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -69,7 +71,9 @@ extern UART_HandleTypeDef huart3;
 extern TIM_HandleTypeDef htim14;
 
 /* USER CODE BEGIN EV */
-
+// 引入电机对象，用于溢出计数
+extern EncoderMotorObjectTypeDef motor1;
+extern EncoderMotorObjectTypeDef motor2;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -315,7 +319,11 @@ void TIM1_CC_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
-
+  // 处理编码器溢出中断，增加 overflow_num
+  if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_UPDATE)) {
+    __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
+    motor2.overflow_num++;
+  }
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
@@ -427,7 +435,11 @@ void DMA1_Stream7_IRQHandler(void)
 void TIM5_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM5_IRQn 0 */
-
+  // 处理编码器溢出中断，增加 overflow_num
+  if (__HAL_TIM_GET_FLAG(&htim5, TIM_FLAG_UPDATE)) {
+    __HAL_TIM_CLEAR_FLAG(&htim5, TIM_FLAG_UPDATE);
+    motor1.overflow_num++;
+  }
   /* USER CODE END TIM5_IRQn 0 */
   HAL_TIM_IRQHandler(&htim5);
   /* USER CODE BEGIN TIM5_IRQn 1 */

@@ -89,7 +89,7 @@ const osThreadAttr_t myTask01_attributes = {
 osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
-  .stack_size = 512 * 4,
+  .stack_size = 1024 * 4,           // 增大堆栈（原512*4）
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for myTask03 */
@@ -110,7 +110,7 @@ const osThreadAttr_t myTask04_attributes = {
 osThreadId_t myTask05Handle;
 const osThreadAttr_t myTask05_attributes = {
   .name = "myTask05",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,            // 增大堆栈（原256*4）
   .priority = (osPriority_t) osPriorityLow,
 };
 
@@ -266,8 +266,8 @@ void CmdParseTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    // 获取互斥锁，保护串口接收操作
-    if (xSemaphoreTake(xUartMutex, portMAX_DELAY) == pdTRUE)
+    // 获取互斥锁，带超时（100ms）避免死锁
+    if (xSemaphoreTake(xUartMutex, pdMS_TO_TICKS(100)) == pdTRUE)
     {
       // 阻塞接收一帧指令（超时100ms）
       HAL_StatusTypeDef status = HAL_UART_Receive(&huart3, (uint8_t*)&rxCmd, sizeof(CommandPacket), 100);
@@ -287,9 +287,18 @@ void CmdParseTask(void *argument)
       }
       else
       {
-        // 发生错误（如超时、帧错误等），尝试恢复串口
+        // 发生错误（如超时、帧错误等），恢复串口
         HAL_UART_AbortReceive(&huart3);
+        // 清除溢出错误标志（ORE）
+        __HAL_UART_CLEAR_FLAG(&huart3, UART_FLAG_ORE);
+        // 重新使能接收
+        SET_BIT(huart3.Instance->CR1, USART_CR1_RE);
       }
+    }
+    else
+    {
+      // 未获得锁，主动让出 CPU
+      taskYIELD();
     }
     osDelay(1);
   }
@@ -344,7 +353,7 @@ void ServoTask(void *argument)
       // 用户应根据实际PWM周期调整映射系数
       __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, angle);
     }
-    osDelay(5);  // 每5ms检查一次
+    osDelay(1);  // 每5ms检查一次
   }
   /* USER CODE END ServoTask */
 }
@@ -378,7 +387,7 @@ void DataSendTask(void *argument)
     txPacket.motor1_actual_rps = motor1.rps;
     txPacket.motor2_actual_rps = motor2.rps;
 
-    // 获取互斥锁，保护串口发送操作
+    // 获取互斥锁，保护串口发送操作（超时50ms）
     if (xSemaphoreTake(xUartMutex, pdMS_TO_TICKS(50)) == pdTRUE)
     {
       HAL_UART_Transmit(&huart3, (uint8_t*)&txPacket, sizeof(TelemetryPacket), 20);
@@ -403,7 +412,7 @@ static void SystemHardwareInit(void) {
 
   // 启动舵机PWM
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-  // 设置初始角度90度
+  // 设置初始角度90度对应的PWM比较值（84~420映射）
   __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 90);
 }
 /* USER CODE END Application */

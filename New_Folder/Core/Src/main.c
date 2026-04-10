@@ -101,7 +101,11 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM6_Init();
   MX_TIM3_Init();
+
   /* USER CODE BEGIN 2 */
+
+  // 提高系统时间基准 TIM14 的中断优先级，避免被高优先级中断饿死
+  HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 3, 0);
 
   /* USER CODE END 2 */
 
@@ -202,7 +206,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     encoder_update(&motor1, period, cnt1);
     encoder_update(&motor2, period, cnt2);
   }
-  /* 其他定时器（如 TIM2/TIM5 的更新中断）可在此添加空处理或溢出计数 */
+  /* 其他定时器（如 TIM2/TIM5 的更新中断）已在各自的 ISR 中处理 overflow_num */
 }
 
 /**
