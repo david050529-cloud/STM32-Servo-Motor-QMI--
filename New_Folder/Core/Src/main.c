@@ -28,7 +28,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "encoder_motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -101,7 +101,6 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM6_Init();
   MX_TIM3_Init();
-
   /* USER CODE BEGIN 2 */
 
   // 提高系统时间基准 TIM14 的中断优先级，避免被高优先级中断饿死
@@ -181,18 +180,22 @@ void SystemClock_Config(void)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called when any timer interrupt occurs.
+  * @note   This function is called  when TIM14 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+  /* USER CODE BEGIN Callback 0 */
   /* 处理系统时间基准：TIM14 负责 HAL Tick */
+  /* USER CODE END Callback 0 */
   if (htim->Instance == TIM14)
   {
     HAL_IncTick();
   }
-  /* 处理电机编码器采样：TIM6 每 10ms 触发一次 */
+  /* USER CODE BEGIN Callback 1 */
   else if (htim->Instance == TIM6)
   {
     static uint32_t last_tick_motor = 0;
@@ -206,7 +209,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     encoder_update(&motor1, period, cnt1);
     encoder_update(&motor2, period, cnt2);
   }
-  /* 其他定时器（如 TIM2/TIM5 的更新中断）已在各自的 ISR 中处理 overflow_num */
+  /* USER CODE END Callback 1 */
 }
 
 /**

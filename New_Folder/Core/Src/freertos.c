@@ -82,14 +82,14 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t myTask01Handle;
 const osThreadAttr_t myTask01_attributes = {
   .name = "myTask01",
-  .stack_size = 1024 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
 /* Definitions for myTask02 */
 osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
-  .stack_size = 1024 * 4,           // 增大堆栈（原512*4）
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for myTask03 */
@@ -103,15 +103,8 @@ const osThreadAttr_t myTask03_attributes = {
 osThreadId_t myTask04Handle;
 const osThreadAttr_t myTask04_attributes = {
   .name = "myTask04",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal,
-};
-/* Definitions for myTask05 */
-osThreadId_t myTask05Handle;
-const osThreadAttr_t myTask05_attributes = {
-  .name = "myTask05",
-  .stack_size = 512 * 4,            // 增大堆栈（原256*4）
-  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityNormal1,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -123,7 +116,6 @@ void StartDefaultTask(void *argument);
 void MotorCtrlTask(void *argument);
 void CmdParseTask(void *argument);
 void IMUTask(void *argument);
-void ServoTask(void *argument);
 void DataSendTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -181,10 +173,7 @@ void MX_FREERTOS_Init(void) {
   myTask03Handle = osThreadNew(IMUTask, NULL, &myTask03_attributes);
 
   /* creation of myTask04 */
-  myTask04Handle = osThreadNew(ServoTask, NULL, &myTask04_attributes);
-
-  /* creation of myTask05 */
-  myTask05Handle = osThreadNew(DataSendTask, NULL, &myTask05_attributes);
+  myTask04Handle = osThreadNew(DataSendTask, NULL, &myTask04_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -283,8 +272,9 @@ void CmdParseTask(void *argument)
         // 解析舵机角度（0~180）
         servoAngle = rxCmd.servo_angle;
         if (servoAngle > 180) servoAngle = 180;
-        servo_set_angle(servoAngle);
+        __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servoAngle);
         xQueueSend(xServoCmdQueue, &servoAngle, 0);
+        taskYIELD();
       }
       else
       {
@@ -329,34 +319,6 @@ void IMUTask(void *argument)
     osDelay(10);  // 10ms周期，与传感器ODR匹配
   }
   /* USER CODE END IMUTask */
-}
-
-/* USER CODE BEGIN Header_ServoTask */
-/**
-* @brief Function implementing the myTask04 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_ServoTask */
-void ServoTask(void *argument)
-{
-  /* USER CODE BEGIN ServoTask */
-  uint16_t angle = 90;  // 默认90度
-  /* Infinite loop */
-  for(;;)
-  {
-    // 尝试接收舵机指令（非阻塞，若无新指令则保持上次角度）
-    if (xQueueReceive(xServoCmdQueue, &angle, 0) == pdTRUE)
-    {
-      // 将角度(0~180)映射到PWM比较值
-      // 假设舵机脉宽范围：500us~2500us，周期20ms(50Hz)
-      // TIM3时钟频率需根据实际配置计算，此处示例映射到0~2000范围
-      // 用户应根据实际PWM周期调整映射系数
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, angle);
-    }
-    osDelay(1);  // 每5ms检查一次
-  }
-  /* USER CODE END ServoTask */
 }
 
 /* USER CODE BEGIN Header_DataSendTask */
@@ -417,3 +379,4 @@ static void SystemHardwareInit(void) {
   __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 90);
 }
 /* USER CODE END Application */
+
