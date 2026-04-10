@@ -49,7 +49,7 @@ typedef struct {
 /* USER CODE BEGIN PD */
 static MotorCmd_t MotorCmd;
 // 遥测数据发送周期（毫秒）
-#define TELEMETRY_SEND_PERIOD_MS    10
+#define TELEMETRY_SEND_PERIOD_MS    5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
