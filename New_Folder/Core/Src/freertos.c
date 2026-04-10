@@ -49,7 +49,7 @@ typedef struct {
 /* USER CODE BEGIN PD */
 static MotorCmd_t MotorCmd;
 // 遥测数据发送周期（毫秒）
-#define TELEMETRY_SEND_PERIOD_MS    20
+#define TELEMETRY_SEND_PERIOD_MS    10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -267,7 +267,7 @@ void CmdParseTask(void *argument)
   for(;;)
   {
     // 获取互斥锁，带超时（100ms）避免死锁
-    if (xSemaphoreTake(xUartMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+    if (xSemaphoreTake(xUartMutex, pdMS_TO_TICKS(50)) == pdTRUE)
     {
       // 阻塞接收一帧指令（超时100ms）
       HAL_StatusTypeDef status = HAL_UART_Receive(&huart3, (uint8_t*)&rxCmd, sizeof(CommandPacket), 100);
