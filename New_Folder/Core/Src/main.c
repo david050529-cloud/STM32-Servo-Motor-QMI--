@@ -177,37 +177,33 @@ void SystemClock_Config(void)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM14 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
+  * @note   This function is called when any timer interrupt occurs.
   * @param  htim : TIM handle
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* USER CODE BEGIN Callback 0 */
-  static uint32_t last_tick_motor = 0;
-  uint32_t now = HAL_GetTick();
-  float period = (now - last_tick_motor) / 1000.0f;
-  if (period <= 0.0f || period > 0.1f) period = 0.01f;
-  last_tick_motor = now;
-  /* USER CODE END Callback 0 */
+  /* 处理系统时间基准：TIM14 负责 HAL Tick */
   if (htim->Instance == TIM14)
   {
     HAL_IncTick();
   }
-  /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM6)
+  /* 处理电机编码器采样：TIM6 每 10ms 触发一次 */
+  else if (htim->Instance == TIM6)
   {
-    // 读取编码器当前计数值（HAL 库提供宏或直接读寄存器）
+    static uint32_t last_tick_motor = 0;
+    uint32_t now = HAL_GetTick();           // 此时 uwTick 已由 TIM14 正常更新
+    float period = (now - last_tick_motor) / 1000.0f;
+    if (period <= 0.0f || period > 0.1f) period = 0.01f;
+    last_tick_motor = now;
+
     int32_t cnt1 = __HAL_TIM_GET_COUNTER(&htim5);
     int32_t cnt2 = __HAL_TIM_GET_COUNTER(&htim2);
     encoder_update(&motor1, period, cnt1);
     encoder_update(&motor2, period, cnt2);
   }
-  /* USER CODE END Callback 1 */
+  /* 其他定时器（如 TIM2/TIM5 的更新中断）可在此添加空处理或溢出计数 */
 }
-
 
 /**
   * @brief  This function is executed in case of error occurrence.

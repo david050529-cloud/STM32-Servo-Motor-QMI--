@@ -33,6 +33,7 @@
 #include "pid.h"
 #include "queue.h"
 #include "tim.h"
+#include "semphr.h"      // 互斥锁头文件
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +62,9 @@ static MotorCmd_t MotorCmd;
 // 队列句柄
 static QueueHandle_t xMotorCmdQueue = NULL;
 static QueueHandle_t xServoCmdQueue = NULL;
+
+// 串口互斥锁（保护 HAL_UART_Receive / HAL_UART_Transmit）
+static SemaphoreHandle_t xUartMutex = NULL;
 
 // 共享姿态数据（由IMU任务更新，遥测任务读取）
 static volatile float g_roll = 0.0f;
@@ -137,6 +141,12 @@ void MX_FREERTOS_Init(void) {
   xMotorCmdQueue = xQueueCreate(5, sizeof(MotorCmd_t));
   xServoCmdQueue = xQueueCreate(5, sizeof(uint16_t));
   if (xMotorCmdQueue == NULL || xServoCmdQueue == NULL) {
+    Error_Handler();
+  }
+
+  // 创建串口互斥锁
+  xUartMutex = xSemaphoreCreateMutex();
+  if (xUartMutex == NULL) {
     Error_Handler();
   }
   /* USER CODE END Init */
@@ -227,7 +237,7 @@ void MotorCtrlTask(void *argument)
       float rps1 = motor1.rps;
       float rps2 = motor2.rps;
 
-      // 计算 PID 输出（增量式，内部自动累加）
+      // 计算 PID 输出（位置式）
       float pulse1 = PID_Update_Position(&pid_motor1, rps1);
       float pulse2 = PID_Update_Position(&pid_motor2, rps2);
 
@@ -256,18 +266,30 @@ void CmdParseTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    // 阻塞接收一帧指令（超时100ms）
-    if (HAL_UART_Receive(&huart3, (uint8_t*)&rxCmd, sizeof(CommandPacket), 100) == HAL_OK)
+    // 获取互斥锁，保护串口接收操作
+    if (xSemaphoreTake(xUartMutex, portMAX_DELAY) == pdTRUE)
     {
-      // 解析电机指令
-      motorCmd.motor1_target_rps = rxCmd.motor1_target_rps;
-      motorCmd.motor2_target_rps = rxCmd.motor2_target_rps;
-      xQueueSend(xMotorCmdQueue, &motorCmd, 0);
+      // 阻塞接收一帧指令（超时100ms）
+      HAL_StatusTypeDef status = HAL_UART_Receive(&huart3, (uint8_t*)&rxCmd, sizeof(CommandPacket), 100);
+      xSemaphoreGive(xUartMutex);
 
-      // 解析舵机角度（0~180）
-      servoAngle = rxCmd.servo_angle;
-      if (servoAngle > 180) servoAngle = 180;
-      xQueueSend(xServoCmdQueue, &servoAngle, 0);
+      if (status == HAL_OK)
+      {
+        // 解析电机指令
+        motorCmd.motor1_target_rps = rxCmd.motor1_target_rps;
+        motorCmd.motor2_target_rps = rxCmd.motor2_target_rps;
+        xQueueSend(xMotorCmdQueue, &motorCmd, 0);
+
+        // 解析舵机角度（0~180）
+        servoAngle = rxCmd.servo_angle;
+        if (servoAngle > 180) servoAngle = 180;
+        xQueueSend(xServoCmdQueue, &servoAngle, 0);
+      }
+      else
+      {
+        // 发生错误（如超时、帧错误等），尝试恢复串口
+        HAL_UART_AbortReceive(&huart3);
+      }
     }
     osDelay(1);
   }
@@ -356,12 +378,12 @@ void DataSendTask(void *argument)
     txPacket.motor1_actual_rps = motor1.rps;
     txPacket.motor2_actual_rps = motor2.rps;
 
-    // 填充帧尾
-    // txPacket.footer[0] = 0x0D;
-    // txPacket.footer[1] = 0x0A;
-
-    // 通过串口发送（阻塞方式，由于数据量小且优先级低，影响可控）
-    HAL_UART_Transmit(&huart3, (uint8_t*)&txPacket, sizeof(TelemetryPacket), 100);
+    // 获取互斥锁，保护串口发送操作
+    if (xSemaphoreTake(xUartMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+    {
+      HAL_UART_Transmit(&huart3, (uint8_t*)&txPacket, sizeof(TelemetryPacket), 20);
+      xSemaphoreGive(xUartMutex);
+    }
     osDelay(1);
   }
   /* USER CODE END DataSendTask */
@@ -382,7 +404,6 @@ static void SystemHardwareInit(void) {
   // 启动舵机PWM
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
   // 设置初始角度90度
-  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 90 * 2000 / 180);
+  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 90);
 }
 /* USER CODE END Application */
-
