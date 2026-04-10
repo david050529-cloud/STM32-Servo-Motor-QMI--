@@ -3,6 +3,8 @@
 #include "motor_porting.h"
 #include "pid.h"
 
+#define MAX_PWM_PULSE  2000
+
 // 全局电机对象
 EncoderMotorObjectTypeDef motor1;
 EncoderMotorObjectTypeDef motor2;
@@ -17,9 +19,11 @@ extern TIM_HandleTypeDef htim5;
 // 电机1 PWM 设置 (TIM1 CH3/CH4)
 void motor1_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
     if (pulse > 0) {
+        if (pulse > MAX_PWM_PULSE) pulse = MAX_PWM_PULSE;
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pulse);
     } else if (pulse < 0) {
+        if (pulse < -MAX_PWM_PULSE) pulse = -MAX_PWM_PULSE;
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, -pulse);
     } else {
@@ -31,9 +35,11 @@ void motor1_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
 // 电机2 PWM 设置 (TIM1 CH1/CH2)
 void motor2_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {
     if (pulse > 0) {
+        if (pulse > MAX_PWM_PULSE) pulse = MAX_PWM_PULSE;
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulse);
     } else if (pulse < 0) {
+        if (pulse < -MAX_PWM_PULSE) pulse = -MAX_PWM_PULSE;
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, -pulse);
     } else {
@@ -84,8 +90,8 @@ void motor_init(void) {
     HAL_TIM_Base_Start_IT(&htim6);
 
     // 初始化 PID 参数（示例，需根据实际调参）
-    PID_Init(&pid_motor1, 10.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 500.0f);
-    PID_Init(&pid_motor2, 10.0f, 0.1f, 0.5f, 1000.0f, -1000.0f, 500.0f);
+    PID_Init(&pid_motor1, 5.0f, 0.05f, 0.0f, MAX_PWM_PULSE, -MAX_PWM_PULSE, 500.0f);
+    PID_Init(&pid_motor2, 5.0f, 0.05f, 0.0f, MAX_PWM_PULSE, -MAX_PWM_PULSE, 500.0f);
 }
 
 void start_encoder_periodic_update(void)
