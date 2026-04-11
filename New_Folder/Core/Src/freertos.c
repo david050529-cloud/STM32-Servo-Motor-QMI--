@@ -90,7 +90,7 @@ osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
   .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityHigh1,
+  .priority = (osPriority_t) osPriorityRealtime1,
 };
 /* Definitions for myTask03 */
 osThreadId_t myTask03Handle;
@@ -104,7 +104,7 @@ osThreadId_t myTask04Handle;
 const osThreadAttr_t myTask04_attributes = {
   .name = "myTask04",
   .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityHigh2,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 
 /* Private function prototypes -----------------------------------------------*/
