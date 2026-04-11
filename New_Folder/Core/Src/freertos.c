@@ -47,7 +47,7 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-static MotorCmd_t MotorCmd;
+
 // 遥测数据发送周期（毫秒）
 #define TELEMETRY_SEND_PERIOD_MS    10
 /* USER CODE END PD */
@@ -59,6 +59,12 @@ static MotorCmd_t MotorCmd;
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+
+static float target_rps_low_limit = 25.0f;
+static CommandPacket rxCmd;
+static MotorCmd_t MotorCmd;
+static uint16_t servoAngle;
+
 // 队列句柄
 static QueueHandle_t xMotorCmdQueue = NULL;
 static QueueHandle_t xServoCmdQueue = NULL;
@@ -92,13 +98,6 @@ const osThreadAttr_t myTask02_attributes = {
   .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityRealtime1,
 };
-/* Definitions for myTask03 */
-osThreadId_t myTask03Handle;
-const osThreadAttr_t myTask03_attributes = {
-  .name = "myTask03",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
 /* Definitions for myTask04 */
 osThreadId_t myTask04Handle;
 const osThreadAttr_t myTask04_attributes = {
@@ -115,7 +114,6 @@ static void SystemHardwareInit(void);  // 硬件初始化（电机、IMU、PWM�
 void StartDefaultTask(void *argument);
 void MotorCtrlTask(void *argument);
 void CmdParseTask(void *argument);
-void IMUTask(void *argument);
 void DataSendTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -141,6 +139,10 @@ void MX_FREERTOS_Init(void) {
   if (xUartMutex == NULL) {
     Error_Handler();
   }
+
+  MotorCmd.motor1_target_rps = target_rps_low_limit;
+  MotorCmd.motor2_target_rps = target_rps_low_limit;
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -168,9 +170,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of myTask02 */
   myTask02Handle = osThreadNew(CmdParseTask, NULL, &myTask02_attributes);
-
-  /* creation of myTask03 */
-  myTask03Handle = osThreadNew(IMUTask, NULL, &myTask03_attributes);
 
   /* creation of myTask04 */
   myTask04Handle = osThreadNew(DataSendTask, NULL, &myTask04_attributes);
@@ -251,9 +250,7 @@ void MotorCtrlTask(void *argument)
 void CmdParseTask(void *argument)
 {
   /* USER CODE BEGIN CmdParseTask */
-  CommandPacket rxCmd;
-  MotorCmd_t motorCmd;
-  uint16_t servoAngle;
+
   /* Infinite loop */
   for(;;)
   {
@@ -267,9 +264,28 @@ void CmdParseTask(void *argument)
       if (status == HAL_OK)
       {
         // 解析电机指令
-        motorCmd.motor1_target_rps = rxCmd.motor1_target_rps;
-        motorCmd.motor2_target_rps = rxCmd.motor2_target_rps;
-        xQueueSend(xMotorCmdQueue, &motorCmd, 0);
+
+        if (rxCmd.motor1_target_rps  > target_rps_low_limit)
+        {
+          MotorCmd.motor1_target_rps = rxCmd.motor1_target_rps;
+        }
+        else
+        {
+          MotorCmd.motor1_target_rps = target_rps_low_limit;
+        }
+
+        if (rxCmd.motor2_target_rps  > target_rps_low_limit)
+        {
+          MotorCmd.motor2_target_rps = rxCmd.motor2_target_rps;
+        }
+        else
+        {
+          MotorCmd.motor2_target_rps = target_rps_low_limit;
+        }
+
+        // motorCmd.motor1_target_rps = rxCmd.motor1_target_rps;
+        // motorCmd.motor2_target_rps = rxCmd.motor2_target_rps;
+        xQueueSend(xMotorCmdQueue, &MotorCmd, 0);
 
         // 解析舵机角度（0~180）
         servoAngle = rxCmd.servo_angle;
@@ -296,31 +312,6 @@ void CmdParseTask(void *argument)
   /* USER CODE END CmdParseTask */
 }
 
-/* USER CODE BEGIN Header_IMUTask */
-/**
-* @brief Function implementing the myTask03 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_IMUTask */
-void IMUTask(void *argument)
-{
-  /* USER CODE BEGIN IMUTask */
-  float roll, pitch, yaw;
-  /* Infinite loop */
-  for(;;)
-  {
-    // 获取欧拉角（内部使用上次调用时间差，建议固定周期10ms）
-    QMI8658_GetEulerSimple(&roll, &pitch, &yaw);
-    // 更新全局变量（volatile保证其他任务可见）
-    g_roll = roll;
-    g_pitch = pitch;
-    g_yaw = yaw;
-    osDelay(10);  // 10ms周期，与传感器ODR匹配
-  }
-  /* USER CODE END IMUTask */
-}
-
 /* USER CODE BEGIN Header_DataSendTask */
 /**
 * @brief Function implementing the myTask05 thread.
@@ -342,6 +333,9 @@ void DataSendTask(void *argument)
     // 填充帧头
     txPacket.header[0] = 0xAA;
     txPacket.header[1] = 0x55;
+
+    // 获取欧拉角（内部使用上次调用时间差，建议固定周期10ms）
+    QMI8658_GetEulerSimple(&g_roll, &g_pitch, &g_yaw);
 
     // 填充遥测数据
     txPacket.roll = g_roll;
