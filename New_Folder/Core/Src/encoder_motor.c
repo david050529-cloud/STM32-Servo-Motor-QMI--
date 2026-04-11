@@ -13,6 +13,13 @@ void encoder_update(EncoderMotorObjectTypeDef *self, float period, int32_t curre
 
     // 计算转速（转/秒）
     self->rps = self->tps / self->ticks_per_circle;
+
+    // 若为电机2，反转符号
+    extern EncoderMotorObjectTypeDef motor2;
+
+    if (self == &motor2) {
+        self->rps = -self->rps;
+    }
 }
 
 void motor_set_pulse(EncoderMotorObjectTypeDef *self, int pulse) {

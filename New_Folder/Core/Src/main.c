@@ -104,7 +104,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // 提高系统时间基准 TIM14 的中断优先级，避免被高优先级中断饿死
-  HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 5, 0);
   /* USER CODE END 2 */
 
   /* Init scheduler */
