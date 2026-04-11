@@ -11,7 +11,7 @@ typedef struct EncoderMotorObject EncoderMotorObjectTypeDef;
 struct EncoderMotorObject {
     // 编码器相关
     int64_t total_counter;     // 总计数值（含溢出）
-    int32_t overflow_num;      // 溢出次数
+    volatile int32_t overflow_num;      // 溢出次数
     int32_t ticks_overflow;    // 定时器溢出值（ARR）
     float tps;                 // 脉冲频率（Hz）
     float rps;                 // 转速（转/秒）

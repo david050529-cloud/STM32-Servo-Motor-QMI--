@@ -1,5 +1,4 @@
 #include "pid.h"
-#include <stdlib.h>
 
 void PID_Init(PID_HandleTypeDef *pid,
               float kp, float ki, float kd,

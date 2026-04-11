@@ -24,11 +24,11 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include "motor_porting.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "encoder_motor.h"
+#include "motor_porting.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,7 +105,6 @@ int main(void)
 
   // 提高系统时间基准 TIM14 的中断优先级，避免被高优先级中断饿死
   HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 3, 0);
-
   /* USER CODE END 2 */
 
   /* Init scheduler */

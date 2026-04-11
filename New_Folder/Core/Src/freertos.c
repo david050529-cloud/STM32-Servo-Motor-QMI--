@@ -90,7 +90,7 @@ osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
   .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityHigh1,
 };
 /* Definitions for myTask03 */
 osThreadId_t myTask03Handle;
@@ -104,7 +104,7 @@ osThreadId_t myTask04Handle;
 const osThreadAttr_t myTask04_attributes = {
   .name = "myTask04",
   .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityNormal1,
+  .priority = (osPriority_t) osPriorityHigh2,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -223,8 +223,10 @@ void MotorCtrlTask(void *argument)
       PID_SetTarget(&pid_motor2, MotorCmd.motor2_target_rps);
 
       // 获取实际转速（已在 TIM6 中断中更新 motor.rps）
+      taskENTER_CRITICAL();
       float rps1 = motor1.rps;
       float rps2 = motor2.rps;
+      taskEXIT_CRITICAL();
 
       // 计算 PID 输出（位置式）
       float pulse1 = PID_Update_Position(&pid_motor1, rps1);
@@ -278,11 +280,9 @@ void CmdParseTask(void *argument)
       }
       else
       {
-        // 发生错误（如超时、帧错误等），恢复串口
         HAL_UART_AbortReceive(&huart3);
-        // 清除溢出错误标志（ORE）
-        __HAL_UART_CLEAR_FLAG(&huart3, UART_FLAG_ORE);
-        // 重新使能接收
+        __HAL_UART_CLEAR_FLAG(&huart3, UART_FLAG_ORE | UART_FLAG_NE | UART_FLAG_FE | UART_FLAG_PE);
+        // 重新使能接收器
         SET_BIT(huart3.Instance->CR1, USART_CR1_RE);
       }
     }
